@@ -579,6 +579,14 @@ A config.ru file is recommended if:
   - You want to use more than one subclass of Sinatra::Base.
   - You want to use Sinatra only for middleware, and not as an endpoint.
 
+Example(for modular apps):
+
+```ruby
+  # config.ru (run with rackup)
+  require './my_app'
+  run MyApp
+```
+
 ---
 
 # Hometask
