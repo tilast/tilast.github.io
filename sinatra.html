@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My Awesome Presentation</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">
+      @import url(http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(http://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(http://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+
+      .small {
+        font-size: 0.8em;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Sinatra
+
+![Sinatra Logo](assets/images/1.png)
+====
+###http://sinatrarb.com
+
+###Lightweight Rack-based Ruby Framework
+
+---
+
+# Installation
+
+To install Sinatra to your environment:
+```ruby
+gem install sinatra
+```
+
+To use Sinatra in your script:
+
+```ruby
+require 'sinatra'
+```
+
+---
+
+# Why Sinatra?
+
+Sinatra allows us easy to create web-applications. You just describe pathes and what should user see on this path.
+
+---
+
+# First site
+
+Let's write first application using Sinatra and learn how to create routes.
+
+```ruby
+  require 'sinatra'
+
+  get '/' do
+    "Hello kottans!"
+  end
+```
+![Kottans Logo](assets/images/2.png)
+
+---
+
+# How to set up HTTP-request types
+
+To specify the action on one http type you can just write
+```ruby
+post '/' do
+  .. do something ..
+end
+```
+
+All type of requests supported by Sinatra:
+ - get 
+ - post
+ - put
+ - patch
+ - delete
+ - options
+ - link
+ - unlink
+
+---
+
+# Request parameters
+
+We can create routes which support parameters.
+To get the access to this parameters we can use **params** hash.
+
+```ruby
+  get '/accounts/:name' do
+    "This is #{params[:name]}'s page!"
+  end
+```
+
+... or also you can pass the parameter as a block parameter:
+
+```ruby
+  get '/accounts/:name' do |name|
+    "This is #{name}'s page!"
+  end
+```
+Parameters may be optional:
+
+```ruby
+  get '/accounts/:name?' do |name|
+    "This is #{name}'s page!"
+  end
+```
+---
+
+# Request parameters
+
+Route patterns may also include splat (or wildcard) parameters
+
+```ruby
+  get '/you/*/to/*' do
+    # matches /you/play/to/win
+    params[:splat] # => ["play", "win"]
+  end
+
+  get '/downloads/*.*' do
+    # matches /download/scripts/book1.pdf
+    params[:splat] # => ["scripts/book1", "pdf"]
+  end
+```
+
+Also you can use regular expressions:
+
+```ruby
+get %r{/regexp/([\w]+)} do |exp|
+  # matches /regexp/sometext
+  "Route using RexExp, <b>#{exp}</b>!"
+end
+```
+
+---
+
+# Routes conditions
+
+You can define different routes for different conditions:
+
+```ruby
+get '/users/chrome', :agent => /Chrome\/[\d\.]+[\d]?/ do
+  "You're using #{params[:agent][0]}"
+end
+
+get '/users/firefox', :agent => /Firefox\/[\d\.]+[\d]?/ do
+  "You're using #{params[:agent][0]}"
+end
+```
+
+Also you can define you custom condition:
+
+```ruby
+set(:probability) { |value| condition { rand <= value } }
+
+get '/win_a_car', :probability => 0.1 do
+  "You won!"
+end
+
+get '/win_a_car' do
+  "Sorry, you lost."
+end
+```
+
+---
+
+# Static files
+
+We can put the static files in **./public** folder to get the access to this files like 'you-site.com/file.ext'.
+For example, we can put CSS, JS, images in this folder:
+
+![Static files example](assets/images/3.png)
+
+We can configure the folder which will be static. To make the **./static** folder as public we should use:
+
+```ruby
+  set :public_folder, File.dirname(__FILE__) + '/static'
+```
+
+---
+
+# Templates
+
+It's hard to imagine web development without templating. By default Sinatra try to take templates from **./views** folder. By default we use **erb** templating, but there are a lot of different templating machines as **haml**, **slim** etc.
+
+**./app.rb**
+```ruby
+  get '/' do
+    erb :index
+  end
+```
+
+**./views/index.erb**
+```html
+  <h1>Hello world</h1>
+```
+
+To specify templates folders:
+
+```ruby
+  set :views, settings.root + '/templates'
+```
+
+---
+
+# Literal templates
+
+```ruby 
+  get '/' do
+    haml '%div.title Hello World'
+  end
+```
+---
+class: small
+
+# Layouts
+
+Templates take a second argument, the options hash. We can put here different parameters. For example, pin **locals**:
+
+**./app.rb**
+```ruby
+  get '/' do
+    inst = Instance.new
+    erb :index, :layout => :post, :locals => { :all => inst }
+  end
+```
+
+**./views/index.erb**
+```html
+  <h1>Hello, <%= all['name'] %></h1>
+```
+
+**./views/post.erb**
+```html
+  <html>
+  <head>
+    <title>Site name</title>
+  </head>
+  <body>
+    <%= yield %>
+  </body>
+  </html>
+```
+
+It's convinient to paste some partials templates to **layout**. 
+
+---
+
+# Template variables
+
+To provide variables to layout we can use some methods.
+
+### Using instance variables 
+
+```ruby
+  get '/instance' do
+    @inst = Instance.new
+    erb '<h1>@inst.name</h1>'
+  end
+```
+
+### Using locals hash
+
+```ruby
+  get '/' do
+    inst = Instance.new
+    erb '<h1><%=inst["name"]%></h1>', :locals => { :inst => inst }
+  end
+```
+
+---
+
+# Filters
+
+We can use **before** and **after** filters to do smth before some route responds.
+
+```ruby
+  set :public_folder, File.dirname(__FILE__) + '/static'
+
+  clients = []
+  i = 0;
+
+  before do
+    clients << "start: " + request.user_agent + ", time: " + 
+      Date.new.strftime('%Y %m %d %h:%i:%s')
+  end
+
+  after do
+    clients <<  "finish: " + request.user_agent + ", time: " + 
+      Date.new.strftime('%Y %m %d %h:%i:%s')
+  end
+
+  get '/' do
+    p clients
+    inst = { 'name' => 'Ihor' }
+    erb :index, :layout => :post, :locals => { :all => inst }
+  end
+```
+
+---
+
+# Helpers
+
+**Helpers** is the range of methods which we can use both everywhere in code and templates. 
+To define helpers:
+
+```ruby
+  helpers do
+    def little_helper(need_help)
+      "#{need_help} needs some help"
+    end
+  end
+
+  get '/:name' do
+    little_helper(params[:name])
+  end
+```
+
+Alternative way to define helpers:
+
+```ruby
+  module Helpers1
+    def helper1(name) "helper1 helps #{name}" end
+  end
+
+  module Helpers2
+    def helper2(name) "helper2 helps #{name}" end
+  end
+
+  helpers Helpers1, Helpers2
+```
+
+---
+
+# Sessions
+
+```ruby
+  enable :sessions
+
+  get '/' do
+    "value = " << session[:value].inspect
+  end
+
+  get '/:value' do
+    session[:value] = params[:value]
+  end
+```
+
+---
+
+# Halting
+
+Sometimes you may want to immediately stop the request and send short response. 
+We can use **halt** method for it.
+
+```ruby
+  halt 402, {'Content-Type' => 'text/plain'}, 'revenge'
+```
+
+...or generate template:
+
+```ruby
+  halt erb(:error)
+```
+
+---
+
+# Redirecting
+
+To redirect from somewhere to some route:
+
+```ruby
+  get '/want_here' do
+    redirect to('/go_away_lamer')
+  end
+```
+
+Also we can pass the HTTP-status to redirect:
+
+```ruby
+  get '/want_here' do
+    redirect to('/go_away_lamer'), 500
+  end
+```
+
+---
+
+# Files
+
+We can simple say browser to save files, i.e. send the file:
+
+```ruby
+  get '/' do
+    send_file 'foo.png'
+  end
+```
+
+---
+
+# Configuration
+
+Once before running application we should set configurations
+
+```ruby
+  configure do
+    # setting one option
+    set :option, 'value'
+
+    # setting multiple options
+    set :a => 1, :b => 2
+
+    # same as `set :option, true`
+    enable :option
+
+    # same as `set :option, false`
+    disable :option
+
+    # you can also have dynamic settings with blocks
+    set(:css_dir) { File.join(views, 'css') }
+  end
+```
+
+---
+
+# Configuration
+
+We can create configuration for different environments(*production*, *development*, *test*) separately
+
+```ruby
+  configure :production do
+    ...
+  end
+
+  configure :production, :test do
+    ...
+  end
+
+  configure :development do
+    ...
+  end
+```
+
+---
+
+# Environments
+
+To run application in different environments, we can use RACK_ENV environment var.
+
+```bash
+  RACK_ENV=production ruby my_app.rb
+```
+
+We can use predefined methods: development?, test? and production? to check the current environment setting:
+
+```ruby
+  get '/' do
+    if settings.development?
+      "development!"
+    else
+      "not development!"
+    end
+  end
+```
+
+---
+
+# Modular Apps
+
+It's not very convinient simply to write *get '/smth' ...*, *post '/smwhr' ...*.
+Most often web apps are developed as MVC app. We can do MVC app with Sinatra, too.
+Firstly, we should require sinatra/base and use the class Sinatra::Base as the ancestor 
+for all controllers.
+
+
+```ruby
+  require 'sinatra/base'
+
+  class MVCApp < Sinatra::Base
+    set :sessions, true
+
+    get '/' do
+      'Hello world!'
+    end
+  end
+```
+
+---
+
+# Modular Apps
+
+Typical MVC Sinatra application structure:
+
+![MVC SInatra App](assets/images/5.png)
+
+---
+
+# Middlewares
+
+In Sinatra we can use Rack middlewares. For example, we can use 
+**Rack::Auth::Basic** to make very simple authentication
+
+```ruby
+  use Rack::Auth::Basic do |username, password|
+    username == 'admin' && password == 'secret'
+  end
+```
+
+![Authentication](assets/images/4.png)
+
+---
+
+# Sinatra as a middleware
+
+We can even create a Sinatra app as a middlewares for Rack:
+
+```ruby
+  require 'sinatra/base'
+
+  class LoginScreen < Sinatra::Base
+    enable :sessions
+
+    get('/login') { haml :login }
+
+    post('/login') do
+      if params[:name] == 'admin' && params[:password] == 'admin'
+        session['user_name'] = params[:name]
+      else
+        redirect '/login'
+      end
+    end
+  end
+
+  class App < Sinatra::Base
+    # middleware will run before filters
+    use LoginScreen
+
+    before do
+      unless session['user_name']
+        halt "Access denied, please <a href='/login'>login</a>."
+      end
+    end
+
+    get('/') { "Hello #{session['user_name']}." }
+  end
+```
+
+---
+
+# Run Sinatra app
+
+To run Sinatra application we can simply write:
+
+```bash
+  ruby my_app.rb
+```
+
+But it's more convenient to run app using **config.ru** file.
+
+---
+
+# Run Sinatra app with config.ru
+
+As Sinatra app is Rack-based application, we can use **config.ru** to run it.
+A config.ru file is recommended if:
+
+  - You want to deploy with a different Rack handler (Passenger, Unicorn, Heroku, …).
+  - You want to use more than one subclass of Sinatra::Base.
+  - You want to use Sinatra only for middleware, and not as an endpoint.
+
+---
+
+# Hometask
+
+... you will get from couch :)
+
+---
+
+# Thanx
+
+![Frank Sinatra](assets/images/6.png)
+
+    </textarea>
+    <script src="assets/javascripts/remark.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
